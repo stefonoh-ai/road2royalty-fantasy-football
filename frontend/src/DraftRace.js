@@ -77,8 +77,8 @@ const DraftRace = () => {
       '#FFD700', '#FF69B4', '#00FFFF', '#32CD32', '#DC143C'
     ];
     const ownerInitials = [
-      'SH', 'JP', 'AJ', 'MD', 'CW', 'RM', 'TB', 'JL', 'ST', 'ZM'
-    ]; // Stefono, Jake, Alex, Mike, Chris, Ryan, Tyler, Jordan, Sam, Zeke
+      'SH', 'MH', 'AH', 'SG', 'BA', 'JPZ', 'AB', 'EH', 'JP', 'ZM'
+    ]; // Stefono, Mike, Anthony, Sal, Bo, Jordan Penza, Aaron, Emiliano, Jake Pridmore, Zeke
     
     const initialPositions = Array.from({length: 10}, (_, i) => ({
       baseOffset: (Math.random() - 0.5) * 15, // Wider initial variation
