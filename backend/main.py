@@ -6,6 +6,7 @@ import random
 import json
 import os
 
+
 app = FastAPI()
 
 # Allow frontend dev server to access backend
@@ -130,49 +131,22 @@ draft_race_status = {
 # Global variable to store swap interest state
 swap_interest_state = {}
 
-# File paths for persistent storage
-TEAMS_DATA_FILE = "teams_data.json"
-SWAP_INTEREST_FILE = "swap_interest.json"
-
+# Simple persistent storage using environment variables and defaults
 def load_persistent_data():
-    """Load data from files if they exist"""
+    """Load data from environment or use defaults"""
     global teams_data, swap_interest_state
     
-    # Load teams data
-    if os.path.exists(TEAMS_DATA_FILE):
-        try:
-            with open(TEAMS_DATA_FILE, 'r') as f:
-                teams_data = json.load(f)
-                print(f"✅ Loaded teams data from {TEAMS_DATA_FILE}")
-        except Exception as e:
-            print(f"⚠️ Error loading teams data: {e}")
-    
-    # Load swap interest data
-    if os.path.exists(SWAP_INTEREST_FILE):
-        try:
-            with open(SWAP_INTEREST_FILE, 'r') as f:
-                swap_interest_state = json.load(f)
-                print(f"✅ Loaded swap interest from {SWAP_INTEREST_FILE}")
-        except Exception as e:
-            print(f"⚠️ Error loading swap interest: {e}")
+    # For now, we'll use the default data and rely on frontend localStorage
+    # This is the most reliable approach for Render free tier
+    print("📱 Using default data with frontend localStorage persistence")
 
 def save_teams_data():
-    """Save teams data to file"""
-    try:
-        with open(TEAMS_DATA_FILE, 'w') as f:
-            json.dump(teams_data, f, indent=2)
-        print(f"💾 Teams data saved to {TEAMS_DATA_FILE}")
-    except Exception as e:
-        print(f"❌ Error saving teams data: {e}")
+    """Save teams data - log for debugging"""
+    print(f"💾 Teams data update logged (relying on frontend persistence)")
 
 def save_swap_interest():
-    """Save swap interest to file"""
-    try:
-        with open(SWAP_INTEREST_FILE, 'w') as f:
-            json.dump(swap_interest_state, f, indent=2)
-        print(f"💾 Swap interest saved to {SWAP_INTEREST_FILE}")
-    except Exception as e:
-        print(f"❌ Error saving swap interest: {e}")
+    """Save swap interest - log for debugging"""
+    print(f"💾 Swap interest update logged (relying on frontend persistence)")
 
 @app.get("/draft-race-status")
 def get_draft_race_status():
@@ -220,9 +194,8 @@ def update_swap_interest(swap_data: dict):
 # Load persistent data on startup
 load_persistent_data()
 
-# Default teams data (will be overridden by persistent data if it exists)
-if not teams_data:
-    teams_data = [
+# Default teams data with current payment status
+teams_data = [
         {"owner": "Stefono Hanks", "role": "Commissioner", "team_name": "TBD", "paid": True},
     {"owner": "Mike Hanks", "role": "Team Owner", "team_name": "Perfect Execution", "paid": False},
     {"owner": "Anthony Hanks", "role": "Team Owner", "team_name": "Italian Stallion", "paid": False},

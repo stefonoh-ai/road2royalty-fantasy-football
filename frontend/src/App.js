@@ -60,7 +60,22 @@ function App() {
   const fetchTeams = async () => {
     try {
       const data = await fetchJSON('/teams');
-      setTeams(data.teams || []);
+      const teams = data.teams || [];
+      
+      // Check if we have local payment data that's different from backend
+      const localPaymentData = localStorage.getItem('road2royalty-payment-status');
+      if (localPaymentData) {
+        const localPayments = JSON.parse(localPaymentData);
+        // Merge local payment status with backend data
+        teams.forEach((team) => {
+          if (localPayments[team.owner] !== undefined) {
+            team.paid = localPayments[team.owner];
+          }
+        });
+        console.log('📱 Merged local payment data with backend');
+      }
+      
+      setTeams(teams);
     } catch (error) {
       console.error('Error fetching teams:', error);
     }
@@ -158,7 +173,17 @@ function App() {
     updatedTeams[teamIndex] = { ...currentTeam, paid: updatedPaymentStatus };
     setTeams(updatedTeams);
     
-    // Send update to backend
+    // Save to localStorage immediately for persistence across backend resets
+    try {
+      const paymentData = JSON.parse(localStorage.getItem('road2royalty-payment-status') || '{}');
+      paymentData[currentTeam.owner] = updatedPaymentStatus;
+      localStorage.setItem('road2royalty-payment-status', JSON.stringify(paymentData));
+      console.log(`💾 Payment status saved locally for ${currentTeam.owner}: ${updatedPaymentStatus}`);
+    } catch (localError) {
+      console.error('Error saving payment status locally:', localError);
+    }
+    
+    // Send update to backend (but don't revert if it fails since we have localStorage backup)
     try {
       const response = await fetchWithRetry(`/admin/update-team/${teamIndex}`, {
         method: 'PUT',
