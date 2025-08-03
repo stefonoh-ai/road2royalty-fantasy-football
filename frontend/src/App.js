@@ -14,6 +14,11 @@ function App() {
   const [commissionerAuthenticated, setCommissionerAuthenticated] = useState(false);
   const [pinInput, setPinInput] = useState('');
   const [showPinPrompt, setShowPinPrompt] = useState(false);
+  const [activeTab, setActiveTab] = useState('main');
+  const [swapInterested, setSwapInterested] = useState({});
+  const [showSwapValidation, setShowSwapValidation] = useState(false);
+  const [swapValidationData, setSwapValidationData] = useState({ teamIndex: null, teamOwner: '' });
+  const [lastNameInput, setLastNameInput] = useState('');
 
   // Commissioner PIN - you can change this to whatever you want
   const COMMISSIONER_PIN = '9574';
@@ -28,6 +33,7 @@ function App() {
       fetchPaymentInfo();
       fetchDraftInfo();
       fetchDraftOrder();
+      fetchSwapInterest();
     };
 
     initializeApp();
@@ -71,10 +77,36 @@ function App() {
 
   const fetchDraftOrder = async () => {
     try {
-      const data = await fetchJSON('/draft-order');
-      setDraftOrder(data);
+      // TEMPORARY: Use official draft order while backend updates
+      const officialDraftOrder = [
+        {"draft_position": 1, "owner": "Sal Guerra"},
+        {"draft_position": 2, "owner": "Anthony Hanks"},
+        {"draft_position": 3, "owner": "Bo Alvarez"},
+        {"draft_position": 4, "owner": "Stefono Hanks"},
+        {"draft_position": 5, "owner": "Jordan Pensa"},
+        {"draft_position": 6, "owner": "Emiliano Hanks"},
+        {"draft_position": 7, "owner": "Aaron Bell"},
+        {"draft_position": 8, "owner": "Jake Pridmore"},
+        {"draft_position": 9, "owner": "Mike Hanks"},
+        {"draft_position": 10, "owner": "Zeke Martinez"}
+      ];
+      
+      console.log('🏈 Using official draft order from actual draft results');
+      setDraftOrder(officialDraftOrder);
+      
+      // Also try to fetch from backend for future updates
+      try {
+        const data = await fetchJSON('/draft-order');
+        // Only use backend data if it matches our official order
+        if (data && data.length === 10 && data[0].owner === "Sal Guerra") {
+          console.log('✅ Backend updated with correct draft order');
+          setDraftOrder(data);
+        }
+      } catch (backendError) {
+        console.log('⚠️ Backend not ready, using official order');
+      }
     } catch (error) {
-      console.error('Error fetching draft order:', error);
+      console.error('Error with draft order:', error);
     }
   };
 
@@ -178,6 +210,82 @@ function App() {
     setPinInput('');
   };
 
+  const handleSwapInterestToggle = (teamIndex) => {
+    const teamOwner = teams[teamIndex]?.owner;
+    if (!teamOwner) return;
+
+    // Show custom validation modal
+    setSwapValidationData({ teamIndex, teamOwner });
+    setShowSwapValidation(true);
+    setLastNameInput('');
+  };
+
+  const fetchSwapInterest = async () => {
+    try {
+      const data = await fetchJSON('/swap-interest');
+      setSwapInterested(data);
+    } catch (error) {
+      console.error('Error fetching swap interest:', error);
+    }
+  };
+
+  const handleSwapValidationSubmit = async () => {
+    const { teamIndex, teamOwner } = swapValidationData;
+    
+    // Extract last name from full name for validation
+    const ownerLastName = teamOwner.split(' ').pop().toLowerCase();
+    
+    // Validate last name (case insensitive)
+    if (lastNameInput.toLowerCase().trim() !== ownerLastName) {
+      alert('❌ Incorrect last name. Access denied.');
+      return;
+    }
+
+    const newInterestState = !swapInterested[teamOwner];
+    
+    try {
+      // Update backend
+      const response = await fetchWithRetry('/swap-interest', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          owner: teamOwner,
+          interested: newInterestState
+        })
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to update swap interest');
+      }
+      
+      // Update local state
+      setSwapInterested(prev => ({
+        ...prev,
+        [teamOwner]: newInterestState
+      }));
+      
+      console.log(`💾 Swap interest ${newInterestState ? 'enabled' : 'disabled'} for ${teamOwner}`);
+      
+      // Success message
+      const action = newInterestState ? 'enabled' : 'disabled';
+      alert(`✅ Swap interest ${action} for ${teamOwner}`);
+    } catch (error) {
+      console.error('Error saving swap interest state:', error);
+      alert('❌ Error saving swap interest. Please try again.');
+    }
+    
+    // Close modal
+    setShowSwapValidation(false);
+    setLastNameInput('');
+  };
+
+  const handleSwapValidationCancel = () => {
+    setShowSwapValidation(false);
+    setLastNameInput('');
+  };
+
   return (
     <div className="App">
       <header className="App-header">
@@ -199,60 +307,73 @@ function App() {
           >
             👑
           </div>
-          <div className="league-title-container">
-            <h1>{league ? league.name : 'Loading...'}</h1>
-          </div>
         </div>
-        <p>{league ? league.description : 'Loading league info...'}</p>
+        
+        <div className="league-title-container">
+          <h1>{league ? league.name : 'Loading...'}</h1>
+          <p className="league-tagline">Where Legends Battle. One Road. One Crown.</p>
+        </div>
+      </header>
+
+      <main className="App-main">
         
         {league && (
           <div className="league-highlights">
-            <div className="highlight-item">
+            <div className="highlight-item buy-in">
               <span className="highlight-label">Buy-in:</span>
               <span className="highlight-value">${league.buy_in}</span>
               <span className="highlight-note">({league.draft_deadline})</span>
             </div>
-            <div className="prizes-section">
-              <h3>🏆 Prize Structure</h3>
-              <div className="prizes-grid">
-                <div className="prize-item first-place">
-                  <span className="prize-position">1st Place</span>
-                  <span className="prize-amount">${league.prizes.first_place}</span>
-                </div>
-                <div className="prize-item second-place">
-                  <span className="prize-position">2nd Place</span>
-                  <span className="prize-amount">${league.prizes.second_place}</span>
-                </div>
-                <div className="prize-item third-place">
-                  <span className="prize-position">3rd Place</span>
-                  <span className="prize-amount">${league.prizes.third_place}</span>
-                </div>
-              </div>
-              <div className="championship-belt">
-                <span className="belt-icon">🥇</span>
-                <span className="belt-text">Winner gets the {league.championship_prize}!</span>
-              </div>
+            <div className="highlight-item">
+              <span className="highlight-label">1st Place:</span>
+              <span className="highlight-value">${league.prizes.first_place}</span>
+            </div>
+            <div className="highlight-item">
+              <span className="highlight-label">2nd Place:</span>
+              <span className="highlight-value">${league.prizes.second_place}</span>
+            </div>
+            <div className="highlight-item">
+              <span className="highlight-label">3rd Place:</span>
+              <span className="highlight-value">${league.prizes.third_place}</span>
+            </div>
+            <div className="highlight-item championship">
+              <span className="highlight-label">Champion Gets:</span>
+              <span className="highlight-value">{league.championship_prize}</span>
             </div>
           </div>
         )}
-      </header>
 
-      <main className="App-main">
-        {/* Hidden Commissioner Panel - Access via crown logo */}
-        {showCommissionerPanel && commissionerAuthenticated && (
-          <section className="commissioner-section">
-            <div className="commissioner-status">
-              <span className="commissioner-indicator">👑 Commissioner Mode Active</span>
+
+
+        {/* Commissioner Panel */}
+        {showCommissionerPanel && (
+          <div className="commissioner-panel">
+            <div className="commissioner-header">
+              <h3>
+                🛡️ Commissioner Panel 
+                {commissionerAuthenticated && <span className="auth-indicator">🔓</span>}
+              </h3>
               <button 
-                className="commissioner-exit-btn"
                 onClick={() => setShowCommissionerPanel(false)}
+                className="close-panel-btn"
               >
-                Exit
+                ✕
               </button>
             </div>
-          </section>
+            {!commissionerAuthenticated && (
+              <div className="auth-required">
+                <p>🔐 Authentication required to access commissioner features.</p>
+                <button 
+                  onClick={() => setShowPinPrompt(true)}
+                  className="auth-btn"
+                >
+                  Enter PIN
+                </button>
+              </div>
+            )}
+          </div>
         )}
-        
+
         {/* PIN Prompt Modal */}
         {showPinPrompt && (
           <div className="pin-modal-overlay">
@@ -287,143 +408,230 @@ function App() {
           </div>
         )}
 
-        {/* Draft Order Race */}
-        <DraftRace />
-
-        {/* Draft Section */}
-        {draft && (
-          <section className="draft-section">
-            <h2>🏈 Live Draft Information</h2>
-            <div className="draft-info-grid">
-              <div className="draft-info-card">
-                <div className="draft-info-icon">📅</div>
-                <div className="draft-info-content">
-                  <span className="draft-info-label">Date</span>
-                  <span className="draft-info-value">{draft.date}</span>
-                </div>
-              </div>
-              <div className="draft-info-card">
-                <div className="draft-info-icon">⏰</div>
-                <div className="draft-info-content">
-                  <span className="draft-info-label">Time</span>
-                  <span className="draft-info-value">{draft.time}</span>
-                </div>
-              </div>
-              <div className="draft-info-card">
-                <div className="draft-info-icon">📍</div>
-                <div className="draft-info-content">
-                  <span className="draft-info-label">Location</span>
-                  <span className="draft-info-value">{draft.location}</span>
-                </div>
-              </div>
-            </div>
-            <div className="draft-special-note">
-              <div className="draft-note-icon">🍕</div>
-              <div className="draft-note-content">
-                <p><strong>{draft.note}</strong></p>
-                <p>{draft.details}</p>
+        {/* Swap Interest Validation Modal */}
+        {showSwapValidation && (
+          <div className="pin-modal-overlay">
+            <div className="pin-modal swap-validation-modal">
+              <h3>🔐 Verification Required</h3>
+              <p>To toggle swap interest for <strong>{swapValidationData.teamOwner}</strong>, please enter their last name:</p>
+              <input
+                type="text"
+                value={lastNameInput}
+                onChange={(e) => setLastNameInput(e.target.value)}
+                onKeyPress={(e) => {
+                  if (e.key === 'Enter') {
+                    handleSwapValidationSubmit();
+                  } else if (e.key === 'Escape') {
+                    handleSwapValidationCancel();
+                  }
+                }}
+                placeholder="Enter last name"
+                className="pin-input"
+                autoFocus
+              />
+              <div className="pin-buttons">
+                <button onClick={handleSwapValidationSubmit} className="pin-submit-btn">
+                  ✅ Verify
+                </button>
+                <button onClick={handleSwapValidationCancel} className="pin-cancel-btn">
+                  ❌ Cancel
+                </button>
               </div>
             </div>
-          </section>
+          </div>
         )}
 
-        {/* Teams Section */}
-        <section className="teams-section">
-          <h2>👥 League Members</h2>
-          <div className="teams-grid">
-            {teams.map((team, index) => {
-              const draftPosition = getDraftPosition(team.owner);
-              return (
-                <div key={index} className="team-card">
-                  {draftPosition && (
-                    <div className="draft-position-badge">
-                      <span className="draft-number">#{draftPosition}</span>
-                      <span className="draft-label">Draft Pick</span>
+        {/* Tab Navigation - Moved below logo */}
+        <div className="tab-navigation">
+          <button 
+            className={`tab-button ${activeTab === 'main' ? 'active' : ''}`}
+            onClick={() => setActiveTab('main')}
+          >
+            🏠 League Home
+          </button>
+          <button 
+            className={`tab-button ${activeTab === 'draft-race' ? 'active' : ''}`}
+            onClick={() => setActiveTab('draft-race')}
+          >
+            🏁 Draft Race
+          </button>
+          <button 
+            className={`tab-button ${activeTab === 'draft-info' ? 'active' : ''}`}
+            onClick={() => setActiveTab('draft-info')}
+          >
+            📋 Draft Info
+          </button>
+        </div>
+
+        {/* Tab Content */}
+        {activeTab === 'main' && (
+          <div className="tab-content">
+            {/* Teams Section */}
+            <section className="teams-section">
+              <h2>👥 League Members</h2>
+              <div className="teams-grid">
+                {teams.map((team, index) => {
+                  const draftPosition = getDraftPosition(team.owner);
+                  const isSwapInterested = swapInterested[team.owner] || false;
+                  return (
+                    <div key={index} className={`team-card ${isSwapInterested ? 'swap-interested' : ''}`}>
+                      {draftPosition && (
+                        <div className="draft-position-badge">
+                          <span className="draft-number">#{draftPosition}</span>
+                          <span className="draft-label">Draft Pick</span>
+                        </div>
+                      )}
+                      <h3>
+                        {showCommissionerPanel && commissionerAuthenticated && editingTeam === index ? (
+                          <input
+                            type="text"
+                            defaultValue={team.team_name}
+                            onBlur={(e) => handleEditTeam(index, 'team_name', e.target.value)}
+                            onKeyPress={(e) => {
+                              if (e.key === 'Enter') {
+                                handleEditTeam(index, 'team_name', e.target.value);
+                              }
+                            }}
+                            autoFocus
+                          />
+                        ) : (
+                          <span 
+                            onClick={() => showCommissionerPanel && commissionerAuthenticated && setEditingTeam(index)}
+                            style={{cursor: showCommissionerPanel && commissionerAuthenticated ? 'pointer' : 'default'}}
+                          >
+                            {team.team_name}
+                          </span>
+                        )}
+                      </h3>
+                      <p>
+                        <strong>Owner:</strong> 
+                        {showCommissionerPanel && commissionerAuthenticated && editingTeam === index ? (
+                          <input
+                            type="text"
+                            defaultValue={team.owner}
+                            onBlur={(e) => handleEditTeam(index, 'owner', e.target.value)}
+                            onKeyPress={(e) => {
+                              if (e.key === 'Enter') {
+                                handleEditTeam(index, 'owner', e.target.value);
+                              }
+                            }}
+                          />
+                        ) : (
+                          <span 
+                            onClick={() => showCommissionerPanel && commissionerAuthenticated && setEditingTeam(index)}
+                            style={{cursor: showCommissionerPanel && commissionerAuthenticated ? 'pointer' : 'default'}}
+                          >
+                            {team.owner}
+                          </span>
+                        )}
+                      </p>
+                      <p><strong>Role:</strong> {team.role}</p>
+                      <div className="payment-status">
+                        <strong>Payment Status:</strong>
+                        <span className={`status ${team.paid ? 'paid' : 'unpaid'}`}>
+                          {team.paid ? '✅ Paid' : '❌ Unpaid'}
+                        </span>
+                        {showCommissionerPanel && commissionerAuthenticated && (
+                          <button 
+                            onClick={() => handleTogglePayment(index)}
+                            className="toggle-payment-btn"
+                          >
+                            Toggle
+                          </button>
+                        )}
+                      </div>
+                      
+                      {/* Draft Order Swap Interest */}
+                      <div className="swap-interest-section">
+                        <button 
+                          onClick={() => handleSwapInterestToggle(index)}
+                          className={`swap-interest-btn ${isSwapInterested ? 'interested' : ''}`}
+                        >
+                          {isSwapInterested ? '🔄 Remove Swap Interest' : '🔄 Interested in Swapping'}
+                        </button>
+                      </div>
                     </div>
-                  )}
-                  <h3>
-                  {showCommissionerPanel && commissionerAuthenticated && editingTeam === index ? (
-                    <input
-                      type="text"
-                      defaultValue={team.team_name}
-                      onBlur={(e) => handleEditTeam(index, 'team_name', e.target.value)}
-                      onKeyPress={(e) => {
-                        if (e.key === 'Enter') {
-                          handleEditTeam(index, 'team_name', e.target.value);
-                        }
-                      }}
-                      autoFocus
-                    />
-                  ) : (
-                    <span 
-                      onClick={() => showCommissionerPanel && commissionerAuthenticated && setEditingTeam(index)}
-                      style={{cursor: showCommissionerPanel && commissionerAuthenticated ? 'pointer' : 'default'}}
-                    >
-                      {team.team_name}
-                    </span>
-                  )}
-                </h3>
-                <p>
-                  <strong>Owner:</strong> 
-                  {showCommissionerPanel && commissionerAuthenticated && editingTeam === index ? (
-                    <input
-                      type="text"
-                      defaultValue={team.owner}
-                      onBlur={(e) => handleEditTeam(index, 'owner', e.target.value)}
-                      onKeyPress={(e) => {
-                        if (e.key === 'Enter') {
-                          handleEditTeam(index, 'owner', e.target.value);
-                        }
-                      }}
-                    />
-                  ) : (
-                    <span 
-                      onClick={() => showCommissionerPanel && commissionerAuthenticated && setEditingTeam(index)}
-                      style={{cursor: showCommissionerPanel && commissionerAuthenticated ? 'pointer' : 'default'}}
-                    >
-                      {team.owner}
-                    </span>
-                  )}
-                </p>
-                <p><strong>Role:</strong> {team.role}</p>
-                <div className="payment-status">
-                  <strong>Payment Status:</strong>
-                  <span className={`status ${team.paid ? 'paid' : 'unpaid'}`}>
-                    {team.paid ? '✅ Paid' : '❌ Unpaid'}
-                  </span>
-                  {showCommissionerPanel && commissionerAuthenticated && (
-                    <button 
-                      onClick={() => handleTogglePayment(index)}
-                      className="toggle-payment-btn"
-                    >
-                      Toggle
-                    </button>
-                  )}
-                </div>
+                  );
+                })}
               </div>
-              );
-            })}
+            </section>
+
+            {/* Payment Section - Styled like league highlights */}
+            {payment && (
+              <section className="payment-section">
+                <h2>💰 Payment Information</h2>
+                <div className="league-highlights payment-highlights">
+                  <div className="highlight-item">
+                    <span className="highlight-label">Commissioner:</span>
+                    <span className="highlight-value">{payment.commissioner}</span>
+                  </div>
+                  <div className="highlight-item">
+                    <span className="highlight-label">📱 Venmo:</span>
+                    <span className="highlight-value">{payment.venmo}</span>
+                  </div>
+                  <div className="highlight-item">
+                    <span className="highlight-label">🍎 Apple Pay:</span>
+                    <span className="highlight-value">{payment.apple_pay}</span>
+                  </div>
+                  <div className="highlight-item payment-note">
+                    <span className="highlight-label">Instructions:</span>
+                    <span className="highlight-value">{payment.instructions}</span>
+                  </div>
+                </div>
+              </section>
+            )}
           </div>
-        </section>
+        )}
 
-        {/* Payment Section */}
-        <section className="payment-section">
-          <h2>💰 League Dues</h2>
-          {payment && (
-            <div className="payment-info">
-              <p><strong>Commissioner:</strong> {payment.commissioner}</p>
-              <p><strong>Venmo:</strong> {payment.venmo}</p>
-              <p><strong>Apple Pay:</strong> {payment.apple_pay}</p>
-              <p>{payment.instructions}</p>
-            </div>
-          )}
-        </section>
+        {activeTab === 'draft-race' && (
+          <div className="tab-content">
+            <DraftRace />
+          </div>
+        )}
 
-
+        {activeTab === 'draft-info' && (
+          <div className="tab-content">
+            {/* Draft Section */}
+            {draft && (
+              <section className="draft-section">
+                <h2>🏈 Live Draft Information</h2>
+                <div className="draft-info-grid">
+                  <div className="draft-info-card">
+                    <div className="draft-info-icon">📅</div>
+                    <div className="draft-info-content">
+                      <span className="draft-info-label">Date</span>
+                      <span className="draft-info-value">{draft.date}</span>
+                    </div>
+                  </div>
+                  <div className="draft-info-card">
+                    <div className="draft-info-icon">⏰</div>
+                    <div className="draft-info-content">
+                      <span className="draft-info-label">Time</span>
+                      <span className="draft-info-value">{draft.time}</span>
+                    </div>
+                  </div>
+                  <div className="draft-info-card">
+                    <div className="draft-info-icon">📍</div>
+                    <div className="draft-info-content">
+                      <span className="draft-info-label">Location</span>
+                      <span className="draft-info-value">{draft.location}</span>
+                    </div>
+                  </div>
+                  <div className="draft-info-card">
+                    <div className="draft-info-icon">🍕</div>
+                    <div className="draft-info-content">
+                      <span className="draft-info-label">Food & Drinks</span>
+                      <span className="draft-info-value">{draft.food}</span>
+                    </div>
+                  </div>
+                </div>
+              </section>
+            )}
+          </div>
+        )}
       </main>
     </div>
   );
 }
-
 
 export default App;

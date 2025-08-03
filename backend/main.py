@@ -23,7 +23,7 @@ def read_root():
 def get_league_info():
     return {
         "name": "Road 2 Royalty",
-        "description": "The ultimate fantasy football league for champions",
+        "description": "Where Legends Battle. One Road. One Crown.",
         "buy_in": 200,
         "prizes": {
             "first_place": 1200,
@@ -119,6 +119,14 @@ def get_draft_info():
 draft_order_completed = False
 final_draft_order = []
 
+draft_race_status = {
+    "is_locked": True,
+    "race_completed": False,
+    "results_visible": False
+}
+
+swap_interest_state = {}
+
 @app.get("/draft-race-status")
 def get_draft_race_status():
     # Set the draft order reveal time: August 3rd, 2025 at noon Pacific Time
@@ -142,7 +150,23 @@ def get_draft_race_status():
         "should_auto_start": is_time_reached and not draft_order_completed and not getattr(get_draft_race_status, '_auto_started', False)
     }
 
+@app.get("/swap-interest")
+def get_swap_interest():
+    """Get current swap interest state for all owners"""
+    return swap_interest_state
 
+@app.post("/swap-interest")
+def update_swap_interest(swap_data: dict):
+    """Update swap interest state for an owner"""
+    global swap_interest_state
+    owner = swap_data.get("owner")
+    interested = swap_data.get("interested", False)
+    
+    if owner:
+        swap_interest_state[owner] = interested
+        return {"success": True, "owner": owner, "interested": interested}
+    else:
+        raise HTTPException(status_code=400, detail="Owner name required")
 
 teams_data = [
     {"owner": "Stefono Hanks", "role": "Commissioner", "team_name": "TBD", "paid": True},
