@@ -15,7 +15,16 @@ function App() {
   const [pinInput, setPinInput] = useState('');
   const [showPinPrompt, setShowPinPrompt] = useState(false);
   const [activeTab, setActiveTab] = useState('main');
-  const [swapInterested, setSwapInterested] = useState({});
+  const [swapInterested, setSwapInterested] = useState(() => {
+    // Initialize immediately with localStorage to prevent loading state
+    try {
+      const saved = localStorage.getItem('road2royalty-swap-interest');
+      return saved ? JSON.parse(saved) : {};
+    } catch (error) {
+      console.error('Error loading initial swap interest state:', error);
+      return {};
+    }
+  });
   const [showSwapValidation, setShowSwapValidation] = useState(false);
   const [swapValidationData, setSwapValidationData] = useState({ teamIndex: null, teamOwner: '' });
   const [lastNameInput, setLastNameInput] = useState('');
@@ -223,9 +232,18 @@ function App() {
   const fetchSwapInterest = async () => {
     try {
       const data = await fetchJSON('/swap-interest');
-      setSwapInterested(data);
+      // Only update if backend data is different from localStorage
+      const currentData = JSON.stringify(swapInterested);
+      const backendData = JSON.stringify(data);
+      if (currentData !== backendData) {
+        setSwapInterested(data);
+        // Sync localStorage with backend
+        localStorage.setItem('road2royalty-swap-interest', backendData);
+        console.log('✅ Swap interest synced from backend:', data);
+      }
     } catch (error) {
-      console.error('Error fetching swap interest:', error);
+      console.log('📱 Backend swap interest not available, keeping localStorage data');
+      // Don't need to do anything - already initialized with localStorage
     }
   };
 
@@ -261,10 +279,18 @@ function App() {
       }
       
       // Update local state
-      setSwapInterested(prev => ({
-        ...prev,
+      const newSwapState = {
+        ...swapInterested,
         [teamOwner]: newInterestState
-      }));
+      };
+      setSwapInterested(newSwapState);
+      
+      // Also save to localStorage as backup
+      try {
+        localStorage.setItem('road2royalty-swap-interest', JSON.stringify(newSwapState));
+      } catch (localError) {
+        console.error('Error saving to localStorage:', localError);
+      }
       
       console.log(`💾 Swap interest ${newInterestState ? 'enabled' : 'disabled'} for ${teamOwner}`);
       
@@ -273,7 +299,20 @@ function App() {
       alert(`✅ Swap interest ${action} for ${teamOwner}`);
     } catch (error) {
       console.error('Error saving swap interest state:', error);
-      alert('❌ Error saving swap interest. Please try again.');
+      // Fallback to localStorage if backend fails
+      try {
+        const newSwapState = {
+          ...swapInterested,
+          [teamOwner]: newInterestState
+        };
+        setSwapInterested(newSwapState);
+        localStorage.setItem('road2royalty-swap-interest', JSON.stringify(newSwapState));
+        
+        const action = newInterestState ? 'enabled' : 'disabled';
+        alert(`⚠️ Backend unavailable. Swap interest ${action} locally (will sync when backend is available)`);
+      } catch (localError) {
+        alert('❌ Error saving swap interest. Please try again.');
+      }
     }
     
     // Close modal
@@ -317,6 +356,28 @@ function App() {
 
       <main className="App-main">
         
+        {/* Tab Navigation - Moved up before league highlights */}
+        <div className="tab-navigation">
+          <button 
+            className={`tab-button ${activeTab === 'main' ? 'active' : ''}`}
+            onClick={() => setActiveTab('main')}
+          >
+            🏠 League Home
+          </button>
+          <button 
+            className={`tab-button ${activeTab === 'draft-race' ? 'active' : ''}`}
+            onClick={() => setActiveTab('draft-race')}
+          >
+            🏁 Draft Race
+          </button>
+          <button 
+            className={`tab-button ${activeTab === 'draft-info' ? 'active' : ''}`}
+            onClick={() => setActiveTab('draft-info')}
+          >
+            📋 Draft Info
+          </button>
+        </div>
+
         {league && (
           <div className="league-highlights">
             <div className="highlight-item buy-in">
@@ -441,27 +502,7 @@ function App() {
           </div>
         )}
 
-        {/* Tab Navigation - Moved below logo */}
-        <div className="tab-navigation">
-          <button 
-            className={`tab-button ${activeTab === 'main' ? 'active' : ''}`}
-            onClick={() => setActiveTab('main')}
-          >
-            🏠 League Home
-          </button>
-          <button 
-            className={`tab-button ${activeTab === 'draft-race' ? 'active' : ''}`}
-            onClick={() => setActiveTab('draft-race')}
-          >
-            🏁 Draft Race
-          </button>
-          <button 
-            className={`tab-button ${activeTab === 'draft-info' ? 'active' : ''}`}
-            onClick={() => setActiveTab('draft-info')}
-          >
-            📋 Draft Info
-          </button>
-        </div>
+
 
         {/* Tab Content */}
         {activeTab === 'main' && (
