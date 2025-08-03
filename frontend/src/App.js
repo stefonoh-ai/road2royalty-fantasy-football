@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import './App.css';
 import DraftRace from './DraftRace';
-import { fetchJSON, wakeUpBackend } from './apiUtils';
+import { fetchJSON, wakeUpBackend, fetchWithRetry } from './apiUtils';
 
 function App() {
   const [league, setLeague] = useState(null);
@@ -69,7 +69,7 @@ function App() {
 
   const updateTeam = async (teamIndex, updatedData) => {
     try {
-      const response = await fetch(`http://127.0.0.1:8000/admin/update-team/${teamIndex}`, {
+      const response = await fetchWithRetry(`/admin/update-team/${teamIndex}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -84,9 +84,10 @@ function App() {
         updatedTeams[teamIndex] = result.team;
         setTeams(updatedTeams);
         setEditingTeam(null);
+        console.log('✅ Team updated successfully:', result.team);
       }
     } catch (error) {
-      console.error('Error updating team:', error);
+      console.error('❌ Error updating team:', error);
     }
   };
 
