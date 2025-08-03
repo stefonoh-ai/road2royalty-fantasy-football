@@ -8,6 +8,9 @@ const DraftRace = () => {
   const [raceStatus, setRaceStatus] = useState(null);
   const [timeRemaining, setTimeRemaining] = useState(0);
   const [hasAutoStarted, setHasAutoStarted] = useState(false);
+  const [raceProgress, setRaceProgress] = useState(0);
+  const [raceTimeLeft, setRaceTimeLeft] = useState(0);
+  const [helmetPositions, setHelmetPositions] = useState([]);
 
   // Check race status and handle countdown
   useEffect(() => {
@@ -31,14 +34,18 @@ const DraftRace = () => {
 
   const checkRaceStatus = async () => {
     try {
-      const response = await fetch('http://192.168.86.64:8000/draft-race-status');
+      const response = await fetch('https://road2royalty-backend.onrender.com/draft-race-status');
       const status = await response.json();
+      
+      // Use the backend's real countdown logic
+      // Backend handles the August 3rd, 2025 noon countdown
+      
       setRaceStatus(status);
       setTimeRemaining(status.time_until_reveal || 0);
       
       // If draft is completed, fetch and show the final order
       if (status.draft_completed && !showResults) {
-        const orderResponse = await fetch('http://192.168.86.64:8000/draft-order');
+        const orderResponse = await fetch('https://road2royalty-backend.onrender.com/draft-order');
         const orderData = await orderResponse.json();
         if (!orderData.error) {
           setDraftOrder(orderData);
@@ -61,24 +68,86 @@ const DraftRace = () => {
     setIsRacing(true);
     setShowResults(false);
     setDraftOrder([]);
+    setRaceProgress(0);
+    setRaceTimeLeft(30);
+    
+    // Initialize player positions with dynamic racing variations and owner initials
+    const jerseyColors = [
+      '#FF0000', '#0000FF', '#008000', '#FFA500', '#800080',
+      '#FFD700', '#FF69B4', '#00FFFF', '#32CD32', '#DC143C'
+    ];
+    const ownerInitials = [
+      'SH', 'JP', 'AJ', 'MD', 'CW', 'RM', 'TB', 'JL', 'ST', 'ZM'
+    ]; // Stefono, Jake, Alex, Mike, Chris, Ryan, Tyler, Jordan, Sam, Zeke
+    
+    const initialPositions = Array.from({length: 10}, (_, i) => ({
+      baseOffset: (Math.random() - 0.5) * 15, // Wider initial variation
+      verticalPosition: 30 + (i * 12), // More spacing between players
+      jerseyColor: jerseyColors[i],
+      ownerInitials: ownerInitials[i],
+      speed: 0.8 + (Math.random() * 0.4), // Random speed multiplier (0.8 to 1.2)
+      lastPositionUpdate: 0
+    }));
+    setHelmetPositions(initialPositions);
 
     try {
-      const response = await fetch('http://192.168.86.64:8000/draft-order');
+      const response = await fetch('https://road2royalty-backend.onrender.com/draft-order');
       const newOrder = await response.json();
+      
+      // LOCAL TESTING: If backend says not available, generate mock order
+      let finalOrder = newOrder;
       if (newOrder.error) {
-        console.error('Draft order not available:', newOrder.error);
-        setIsRacing(false);
-        return;
+        console.log('Backend not ready, generating local test order...');
+        const owners = [
+          "Stefono Hanks", "Jake Pridmore", "Alex Johnson", "Mike Davis", "Chris Wilson",
+          "Ryan Martinez", "Tyler Brown", "Jordan Lee", "Sam Taylor", "Zeke Martinez"
+        ];
+        const shuffled = [...owners].sort(() => Math.random() - 0.5);
+        finalOrder = shuffled.map((owner, index) => ({
+          position: index + 1,
+          owner: owner
+        }));
       }
       
-      // Simulate race animation for 4 seconds
+      // Start progress tracking during race
+      const raceStartTime = Date.now();
+      const raceDuration = 30000; // 30 seconds
+      
+      const progressInterval = setInterval(() => {
+        const elapsed = Date.now() - raceStartTime;
+        const progress = Math.min((elapsed / raceDuration) * 100, 100);
+        const timeLeft = Math.max(30 - Math.floor(elapsed / 1000), 0);
+        
+        setRaceProgress(progress);
+        setRaceTimeLeft(timeLeft);
+        
+        // Update player positions dynamically every 2 seconds
+        if (elapsed % 2000 < 100) {
+          setHelmetPositions(prevPositions => 
+            prevPositions.map(player => ({
+              ...player,
+              baseOffset: player.baseOffset + (Math.random() - 0.5) * 8, // Random position change
+              speed: Math.max(0.6, Math.min(1.4, player.speed + (Math.random() - 0.5) * 0.3)) // Speed variation
+            }))
+          );
+        }
+        
+        if (elapsed >= raceDuration) {
+          clearInterval(progressInterval);
+        }
+      }, 100); // Update every 100ms for smooth progress
+      
+      // Simulate race animation for 30 seconds
       setTimeout(() => {
-        setDraftOrder(newOrder);
+        clearInterval(progressInterval);
+        setDraftOrder(finalOrder);
         setIsRacing(false);
         setShowResults(true);
+        setRaceProgress(100);
+        setRaceTimeLeft(0);
         // Update race status to mark draft as completed
         checkRaceStatus();
-      }, 4000);
+      }, 30000);
     } catch (error) {
       console.error('Error fetching draft order:', error);
       setIsRacing(false);
@@ -158,28 +227,94 @@ const DraftRace = () => {
       )}
 
       {isRacing && (
-        <div className="football-field">
-          <div className="field-lines">
-            {[...Array(11)].map((_, i) => (
-              <div key={i} className="yard-line" style={{left: `${i * 9}%`}}>
-                <span className="yard-number">{i * 10}</span>
+        <div className="race-in-progress">
+          <div className="race-status">
+            <h3>🏁 DRAFT ORDER RACE IN PROGRESS! 🏁</h3>
+            <div className="race-timer">
+              <span className="timer-label">Race Time Remaining:</span>
+              <span className="timer-value">{raceTimeLeft}s</span>
+            </div>
+            <div className="progress-container">
+              <div className="progress-bar">
+                <div 
+                  className="progress-fill" 
+                  style={{width: `${raceProgress}%`}}
+                ></div>
               </div>
-            ))}
+              <div className="progress-text">{Math.round(raceProgress)}% Complete</div>
+            </div>
           </div>
           
-          <div className="racing-helmets">
-            {[...Array(10)].map((_, i) => (
-              <div 
-                key={i} 
-                className={`racing-helmet helmet-${i + 1}`}
-                style={{
-                  animationDelay: `${Math.random() * 0.5}s`,
-                  animationDuration: `${3.5 + Math.random() * 1}s`
-                }}
-              >
-                🏈
-              </div>
-            ))}
+          <div className="football-field">
+            <div className="field-lines">
+              {[...Array(11)].map((_, i) => (
+                <div key={i} className="yard-line" style={{left: `${i * 9}%`}}>
+                  <span className="yard-number">{i * 10}</span>
+                </div>
+              ))}
+            </div>
+            
+            <div className="racing-players">
+              {helmetPositions.map((player, i) => {
+                // Each player moves with dynamic speed and position variations
+                const baseProgress = raceProgress * player.speed;
+                const playerProgress = Math.min(100, Math.max(0, baseProgress + player.baseOffset));
+                
+                return (
+                  <div 
+                    key={i} 
+                    className={`racing-player player-${i + 1}`}
+                    style={{
+                      position: 'absolute',
+                      left: `${playerProgress}%`,
+                      top: `${player.verticalPosition}px`,
+                      transition: 'left 0.8s ease-out', // Smoother transitions for position changes
+                      transform: 'translateX(-50%)',
+                      fontSize: '24px',
+                      zIndex: 10,
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '3px'
+                    }}
+                  >
+                    <div 
+                      className="player-jersey"
+                      style={{
+                        backgroundColor: player.jerseyColor,
+                        borderRadius: '50%',
+                        width: '24px',
+                        height: '24px',
+                        border: '2px solid white',
+                        boxShadow: '0 2px 4px rgba(0,0,0,0.3)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: '8px',
+                        fontWeight: 'bold',
+                        color: 'white',
+                        textShadow: '1px 1px 1px rgba(0,0,0,0.8)'
+                      }}
+                    >
+                      {player.ownerInitials}
+                    </div>
+                    <span 
+                      className="football-player"
+                      style={{
+                        animation: 'running 0.6s infinite alternate',
+                        fontSize: '20px'
+                      }}
+                    >
+                      🏈
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+            
+            <div className="race-excitement">
+              <div className="excitement-text">🔥 THE RACE IS ON! 🔥</div>
+              <div className="excitement-subtext">Who will get the #1 draft pick?!</div>
+            </div>
           </div>
         </div>
       )}

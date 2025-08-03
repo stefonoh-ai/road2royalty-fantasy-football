@@ -18,22 +18,22 @@ function App() {
 
   useEffect(() => {
     // Fetch league info
-    fetch('http://192.168.86.64:8000/league')
+    fetch('https://road2royalty-backend.onrender.com/league')
       .then(res => res.json())
       .then(data => setLeague(data));
 
     // Fetch teams
-    fetch('http://192.168.86.64:8000/teams')
+    fetch('https://road2royalty-backend.onrender.com/teams')
       .then(res => res.json())
       .then(data => setTeams(data.teams || data));
 
     // Fetch payment info
-    fetch('http://192.168.86.64:8000/payment')
+    fetch('https://road2royalty-backend.onrender.com/payment')
       .then(res => res.json())
       .then(data => setPayment(data));
 
     // Fetch draft info
-    fetch('http://192.168.86.64:8000/draft')
+    fetch('https://road2royalty-backend.onrender.com/draft')
       .then(res => res.json())
       .then(data => setDraft(data));
   }, []);
