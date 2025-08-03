@@ -1,6 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import './App.css';
 import DraftRace from './DraftRace';
+import { fetchJSON, wakeUpBackend } from './apiUtils';
 
 function App() {
   const [league, setLeague] = useState(null);
@@ -12,31 +13,59 @@ function App() {
   const [commissionerAuthenticated, setCommissionerAuthenticated] = useState(false);
   const [pinInput, setPinInput] = useState('');
   const [showPinPrompt, setShowPinPrompt] = useState(false);
-  
+
   // Commissioner PIN - you can change this to whatever you want
   const COMMISSIONER_PIN = '9574';
 
   useEffect(() => {
-    // Fetch league info
-    fetch('https://road2royalty-backend.onrender.com/league')
-      .then(res => res.json())
-      .then(data => setLeague(data));
+    // Wake up backend and fetch all data when component mounts
+    const initializeApp = async () => {
+      console.log('🚀 Initializing Road 2 Royalty app...');
+      await wakeUpBackend(); // Proactively wake up backend
+      fetchLeagueInfo();
+      fetchTeams();
+      fetchPaymentInfo();
+      fetchDraftInfo();
+    };
 
-    // Fetch teams
-    fetch('https://road2royalty-backend.onrender.com/teams')
-      .then(res => res.json())
-      .then(data => setTeams(data.teams || data));
-
-    // Fetch payment info
-    fetch('https://road2royalty-backend.onrender.com/payment')
-      .then(res => res.json())
-      .then(data => setPayment(data));
-
-    // Fetch draft info
-    fetch('https://road2royalty-backend.onrender.com/draft')
-      .then(res => res.json())
-      .then(data => setDraft(data));
+    initializeApp();
   }, []);
+
+  const fetchLeagueInfo = async () => {
+    try {
+      const data = await fetchJSON('/league');
+      setLeague(data);
+    } catch (error) {
+      console.error('Error fetching league info:', error);
+    }
+  };
+
+  const fetchTeams = async () => {
+    try {
+      const data = await fetchJSON('/teams');
+      setTeams(data.teams || []);
+    } catch (error) {
+      console.error('Error fetching teams:', error);
+    }
+  };
+
+  const fetchPaymentInfo = async () => {
+    try {
+      const data = await fetchJSON('/payment');
+      setPayment(data);
+    } catch (error) {
+      console.error('Error fetching payment info:', error);
+    }
+  };
+
+  const fetchDraftInfo = async () => {
+    try {
+      const data = await fetchJSON('/draft');
+      setDraft(data);
+    } catch (error) {
+      console.error('Error fetching draft info:', error);
+    }
+  };
 
   const updateTeam = async (teamIndex, updatedData) => {
     try {
@@ -48,7 +77,7 @@ function App() {
         body: JSON.stringify(updatedData),
       });
       const result = await response.json();
-      
+
       if (result.team) {
         // Update local state
         const updatedTeams = [...teams];
