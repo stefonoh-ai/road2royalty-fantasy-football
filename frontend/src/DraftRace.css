@@ -1,0 +1,308 @@
+/* Draft Race Container */
+.draft-race-container {
+  margin: 50px auto;
+  padding: 40px;
+  max-width: 1000px;
+  background: linear-gradient(135deg, #2d5a27, #4a7c59);
+  border-radius: 20px;
+  color: white;
+  text-align: center;
+  box-shadow: 0 15px 40px rgba(0, 0, 0, 0.3);
+  border: 4px solid #ffd700;
+}
+
+.draft-race-container h2 {
+  color: white;
+  border-bottom: 3px solid #ffd700;
+  padding-bottom: 15px;
+  margin-bottom: 30px;
+  font-size: 2.2rem;
+  font-weight: bold;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+}
+
+.race-button {
+  background: linear-gradient(45deg, #ff6b35, #f7931e);
+  color: white;
+  border: none;
+  padding: 20px 40px;
+  font-size: 1.3rem;
+  font-weight: bold;
+  border-radius: 30px;
+  cursor: pointer;
+  margin: 30px 0;
+  transition: all 0.3s ease;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+  border: 2px solid #ffd700;
+}
+
+.race-button:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+}
+
+.race-button:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+/* Admin Controls */
+.admin-controls {
+  margin: 15px 0;
+}
+
+.admin-toggle-btn {
+  background: #6c757d;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background 0.3s ease;
+}
+
+.admin-toggle-btn:hover {
+  background: #5a6268;
+}
+
+.admin-panel {
+  background: rgba(255,255,255,0.15);
+  border: 2px solid #ffd700;
+  border-radius: 8px;
+  padding: 20px;
+  margin: 20px 0;
+  text-align: left;
+}
+
+.admin-panel h3 {
+  color: #ffd700;
+  margin: 0 0 15px 0;
+  text-align: center;
+}
+
+.admin-panel p {
+  margin: 8px 0;
+  font-size: 14px;
+}
+
+.admin-override-btn {
+  background: #dc3545;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 5px;
+  cursor: pointer;
+  margin: 10px 0;
+  transition: background 0.3s ease;
+}
+
+.admin-override-btn:hover {
+  background: #c82333;
+}
+
+.unpaid-list {
+  background: rgba(220,53,69,0.2);
+  padding: 10px;
+  border-radius: 5px;
+  margin-top: 10px;
+}
+
+/* Race Locked State */
+.race-locked {
+  background: rgba(220,53,69,0.2);
+  border: 3px solid #dc3545;
+  border-radius: 12px;
+  padding: 30px;
+  margin: 30px 0;
+  text-align: center;
+  font-size: 1.1rem;
+}
+
+.race-locked h3 {
+  color: #dc3545;
+  margin: 0 0 20px 0;
+  font-size: 1.8rem;
+  font-weight: bold;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+.race-locked ul {
+  text-align: left;
+  display: inline-block;
+  margin: 10px 0;
+}
+
+.race-locked li {
+  margin: 5px 0;
+  color: #dc3545;
+  font-weight: bold;
+}
+
+/* Admin Override Notice */
+.admin-override-notice {
+  background: rgba(255,193,7,0.2);
+  border: 1px solid #ffc107;
+  border-radius: 5px;
+  padding: 10px;
+  margin: 15px 0;
+  color: #856404;
+  font-weight: bold;
+}
+
+/* Football Field */
+.football-field {
+  position: relative;
+  width: 100%;
+  height: 300px;
+  background: linear-gradient(90deg, #2d5a27 0%, #4a7c59 50%, #2d5a27 100%);
+  border: 4px solid white;
+  border-radius: 12px;
+  margin: 30px 0;
+  overflow: hidden;
+  box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.3);
+}
+
+.field-lines {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  top: 0;
+  left: 0;
+}
+
+.yard-line {
+  position: absolute;
+  width: 2px;
+  height: 100%;
+  background: white;
+  opacity: 0.7;
+}
+
+.yard-number {
+  position: absolute;
+  top: 10px;
+  left: -10px;
+  font-size: 12px;
+  color: white;
+  font-weight: bold;
+}
+
+/* Racing Helmets */
+.racing-helmets {
+  position: relative;
+  height: 100%;
+  width: 100%;
+}
+
+.racing-helmet {
+  position: absolute;
+  font-size: 24px;
+  top: 50%;
+  left: 0;
+  transform: translateY(-50%);
+  animation: raceAcrossField 4s ease-in-out forwards;
+}
+
+.racing-helmet:nth-child(1) { top: 10%; }
+.racing-helmet:nth-child(2) { top: 20%; }
+.racing-helmet:nth-child(3) { top: 30%; }
+.racing-helmet:nth-child(4) { top: 40%; }
+.racing-helmet:nth-child(5) { top: 50%; }
+.racing-helmet:nth-child(6) { top: 60%; }
+.racing-helmet:nth-child(7) { top: 70%; }
+.racing-helmet:nth-child(8) { top: 80%; }
+.racing-helmet:nth-child(9) { top: 90%; }
+.racing-helmet:nth-child(10) { top: 95%; }
+
+@keyframes raceAcrossField {
+  0% {
+    left: -30px;
+    transform: translateY(-50%) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-50%) rotate(180deg);
+  }
+  100% {
+    left: calc(100% - 30px);
+    transform: translateY(-50%) rotate(360deg);
+  }
+}
+
+/* Results Section */
+.race-results {
+  margin-top: 30px;
+  padding: 20px;
+  background: rgba(255,255,255,0.1);
+  border-radius: 8px;
+}
+
+.race-results h3 {
+  color: #ffd700;
+  margin-bottom: 20px;
+}
+
+.results-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 15px;
+  margin-top: 20px;
+}
+
+.result-card {
+  background: rgba(255,255,255,0.2);
+  border-radius: 8px;
+  padding: 15px;
+  text-align: center;
+  border: 2px solid transparent;
+  transition: all 0.3s ease;
+}
+
+.result-card:hover {
+  border-color: #ffd700;
+  transform: translateY(-2px);
+}
+
+.draft-position {
+  font-size: 24px;
+  font-weight: bold;
+  color: #ffd700;
+  margin-bottom: 10px;
+}
+
+.owner-name {
+  font-weight: bold;
+  margin: 8px 0;
+  font-size: 14px;
+}
+
+/* Simplified Helmet Icon */
+.helmet-icon {
+  font-size: 20px;
+  margin: 8px 0;
+  display: inline-block;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .football-field {
+    height: 150px;
+  }
+  
+  .racing-helmet {
+    font-size: 18px;
+  }
+  
+  .results-grid {
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 10px;
+  }
+  
+  .result-card {
+    padding: 10px;
+  }
+  
+  .draft-position {
+    font-size: 20px;
+  }
+}
