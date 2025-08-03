@@ -74,29 +74,25 @@ def get_draft_order():
     if current_time < draft_reveal_time:
         return {"error": "Draft order not yet available"}
     
-    # Get teams data
-    teams_data_response = get_teams()
-    teams = teams_data_response["teams"]
+    # OFFICIAL DRAFT ORDER - Fixed results from actual draft
+    # This is the final, permanent draft order from the Road 2 Royalty draft
+    official_draft_order = [
+        {"draft_position": 1, "owner": "Sal Guerra", "nfl_team": "Generic", "helmet_style": "standard"},
+        {"draft_position": 2, "owner": "Anthony Hanks", "nfl_team": "Generic", "helmet_style": "standard"},
+        {"draft_position": 3, "owner": "Bo Alvarez", "nfl_team": "Generic", "helmet_style": "standard"},
+        {"draft_position": 4, "owner": "Stefono Hanks", "nfl_team": "Generic", "helmet_style": "standard"},
+        {"draft_position": 5, "owner": "Jordan Pensa", "nfl_team": "Generic", "helmet_style": "standard"},
+        {"draft_position": 6, "owner": "Emiliano Hanks", "nfl_team": "Generic", "helmet_style": "standard"},
+        {"draft_position": 7, "owner": "Aaron Bell", "nfl_team": "Generic", "helmet_style": "standard"},
+        {"draft_position": 8, "owner": "Jake Pridmore", "nfl_team": "Generic", "helmet_style": "standard"},
+        {"draft_position": 9, "owner": "Mike Hanks", "nfl_team": "Generic", "helmet_style": "standard"},
+        {"draft_position": 10, "owner": "Zeke Martinez", "nfl_team": "Generic", "helmet_style": "standard"}
+    ]
     
-    # Create a list of owners
-    owners = [team["owner"] for team in teams if team["owner"] != "TBD"]
+    draft_order = official_draft_order
     
-    # Shuffle the owners to create random draft order
-    random.shuffle(owners)
-    
-    # Create draft order with positions
-    draft_order = []
-    for i, owner in enumerate(owners):
-        draft_order.append({
-            "draft_position": i + 1,
-            "owner": owner,
-            "nfl_team": "Generic",
-            "helmet_style": "standard"
-        })
-    
-    # Mark as completed and store final order
+    # Draft is completed with official results
     draft_order_completed = True
-    final_draft_order = draft_order
     
     return draft_order
 
