@@ -8,6 +8,7 @@ function App() {
   const [teams, setTeams] = useState([]);
   const [payment, setPayment] = useState(null);
   const [draft, setDraft] = useState(null);
+  const [draftOrder, setDraftOrder] = useState([]);
   const [editingTeam, setEditingTeam] = useState(null);
   const [showCommissionerPanel, setShowCommissionerPanel] = useState(false);
   const [commissionerAuthenticated, setCommissionerAuthenticated] = useState(false);
@@ -26,6 +27,7 @@ function App() {
       fetchTeams();
       fetchPaymentInfo();
       fetchDraftInfo();
+      fetchDraftOrder();
     };
 
     initializeApp();
@@ -67,6 +69,21 @@ function App() {
     }
   };
 
+  const fetchDraftOrder = async () => {
+    try {
+      const data = await fetchJSON('/draft-order');
+      setDraftOrder(data);
+    } catch (error) {
+      console.error('Error fetching draft order:', error);
+    }
+  };
+
+  // Helper function to get draft position for a team owner
+  const getDraftPosition = (ownerName) => {
+    const draftPick = draftOrder.find(pick => pick.owner === ownerName);
+    return draftPick ? draftPick.draft_position : null;
+  };
+
   const updateTeam = async (teamIndex, updatedData) => {
     try {
       const response = await fetchWithRetry(`/admin/update-team/${teamIndex}`, {
@@ -79,7 +96,7 @@ function App() {
       const result = await response.json();
 
       if (result.team) {
-        // Update local state
+        // Update local state immediately
         const updatedTeams = [...teams];
         updatedTeams[teamIndex] = result.team;
         setTeams(updatedTeams);
@@ -88,6 +105,45 @@ function App() {
       }
     } catch (error) {
       console.error('❌ Error updating team:', error);
+    }
+  };
+
+  const handleTogglePayment = async (teamIndex) => {
+    const currentTeam = teams[teamIndex];
+    const updatedPaymentStatus = !currentTeam.paid;
+    
+    // Update local state immediately for responsive UI
+    const updatedTeams = [...teams];
+    updatedTeams[teamIndex] = { ...currentTeam, paid: updatedPaymentStatus };
+    setTeams(updatedTeams);
+    
+    // Send update to backend
+    try {
+      const response = await fetchWithRetry(`/admin/update-team/${teamIndex}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ paid: updatedPaymentStatus }),
+      });
+      const result = await response.json();
+      
+      if (result.team) {
+        // Confirm the update with backend response
+        updatedTeams[teamIndex] = result.team;
+        setTeams(updatedTeams);
+        console.log('✅ Payment status updated:', result.team);
+      } else {
+        // Revert on failure
+        updatedTeams[teamIndex] = currentTeam;
+        setTeams(updatedTeams);
+        console.error('❌ Failed to update payment status');
+      }
+    } catch (error) {
+      // Revert on error
+      updatedTeams[teamIndex] = currentTeam;
+      setTeams(updatedTeams);
+      console.error('❌ Error updating payment status:', error);
     }
   };
 
@@ -275,9 +331,17 @@ function App() {
         <section className="teams-section">
           <h2>👥 League Members</h2>
           <div className="teams-grid">
-            {teams.map((team, index) => (
-              <div key={index} className="team-card">
-                <h3>
+            {teams.map((team, index) => {
+              const draftPosition = getDraftPosition(team.owner);
+              return (
+                <div key={index} className="team-card">
+                  {draftPosition && (
+                    <div className="draft-position-badge">
+                      <span className="draft-number">#{draftPosition}</span>
+                      <span className="draft-label">Draft Pick</span>
+                    </div>
+                  )}
+                  <h3>
                   {showCommissionerPanel && commissionerAuthenticated && editingTeam === index ? (
                     <input
                       type="text"
@@ -322,21 +386,23 @@ function App() {
                   )}
                 </p>
                 <p><strong>Role:</strong> {team.role}</p>
-                <p className={`payment-status ${team.paid ? 'paid' : 'unpaid'}`}>
+                <div className="payment-status">
                   <strong>Payment Status:</strong>
-                  {showCommissionerPanel && commissionerAuthenticated ? (
-                    <button
-                      onClick={() => handleEditTeam(index, 'paid', !team.paid)}
-                      className={`payment-toggle ${team.paid ? 'paid' : 'unpaid'}`}
+                  <span className={`status ${team.paid ? 'paid' : 'unpaid'}`}>
+                    {team.paid ? '✅ Paid' : '❌ Unpaid'}
+                  </span>
+                  {showCommissionerPanel && commissionerAuthenticated && (
+                    <button 
+                      onClick={() => handleTogglePayment(index)}
+                      className="toggle-payment-btn"
                     >
-                      {team.paid ? '✅ Paid' : '❌ Not Paid'}
+                      Toggle
                     </button>
-                  ) : (
-                    <span>{team.paid ? ' ✅ Paid' : ' ❌ Not Paid'}</span>
                   )}
-                </p>
+                </div>
               </div>
-            ))}
+              );
+            })}
           </div>
         </section>
 
